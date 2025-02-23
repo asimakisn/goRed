@@ -132,3 +132,111 @@ func (rd *Resp) readInteger() (int, int, error) {
 
 	return int(i64), n, nil
 }
+
+// get the Value properties and convert them to byte
+
+func (v Value) marshall() []byte {
+	switch v.typ {
+	case "array":
+		return v.marshallArray()
+	case "bulk":
+		return v.marshallBulk()
+	case "string":
+		return v.marshallString()
+	case "null":
+		return v.marshallNull()
+	case "error":
+		return v.marshallError()
+	default:
+		fmt.Println("Invalid type.")
+		return []byte{}
+	}
+}
+
+func (v Value) marshallArray() []byte {
+	r := []byte{}
+
+	length := len(v.arr)
+
+	r = append(r, ARRAY)
+	r = append(r, strconv.Itoa(len(v.arr))...)
+	r = append(r, '\r')
+	r = append(r, '\n')
+
+	for i := 0; i < length; i++ {
+		r = append(r, v.arr[i].marshall()...)
+		r = append(r, '\r', '\n')
+	}
+
+	return r
+}
+
+func (v Value) marshallString() []byte {
+	r := []byte{}
+
+	r = append(r, STRING)
+	r = append(r, v.str...)
+	r = append(r, '\r')
+	r = append(r, '\n')
+
+	return r
+}
+
+func (v Value) marshallError() []byte {
+	r := []byte{}
+
+	r = append(r, ERROR)
+	r = append(r, v.str...)
+	r = append(r, '\r')
+	r = append(r, '\n')
+
+	return r
+}
+
+func (v Value) marshallInteger() []byte {
+	r := []byte{}
+
+	r = append(r, INTEGER)
+	r = append(r, []byte(strconv.Itoa(v.num))...)
+	r = append(r, '\r')
+	r = append(r, '\n')
+
+	return r
+}
+
+func (v Value) marshallBulk() []byte {
+	r := []byte{}
+
+	r = append(r, BULK)
+	r = append(r, strconv.Itoa(len(v.bulk))...)
+	r = append(r, '\r')
+	r = append(r, '\n')
+	r = append(r, []byte(v.bulk)...)
+	r = append(r, '\r')
+	r = append(r, '\n')
+
+	return r
+}
+
+func (v Value) marshallNull() []byte {
+	return []byte("$-1\r\n")
+}
+
+type Writer struct {
+	writer io.Writer
+}
+
+func newWriter(writer io.Writer) *Writer {
+	return &Writer{writer: writer}
+}
+
+func (w *Writer) write(v Value) error {
+	bytes := v.marshall()
+
+	_, err := w.writer.Write(bytes)
+	if err != nil {
+		fmt.Println("Error writing to client")
+		return err
+	}
+	return nil
+}
