@@ -16,6 +16,26 @@ func main() {
 		return
 	}
 
+	aof, err := newAof("testAof.aof")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	defer aof.file.Close()
+
+	aof.read(func(val Value) {
+		command := strings.ToUpper(val.arr[0].bulk)
+		args := val.arr[1:]
+
+		handler, ok := handlers[command]
+		if !ok {
+			fmt.Println("Invalid command:", command)
+			return
+		}
+
+		handler(args)
+	})
+
 	conn, err := l.Accept()
 	if err != nil {
 		fmt.Println(err)
@@ -51,6 +71,13 @@ func main() {
 		args := val.arr[1:]
 
 		handler, ok := handlers[command]
+
+		if command == "SET" || command == "HSET" {
+			err := aof.Write(val)
+			if err != nil {
+				fmt.Println("Error writing to aof.")
+			}
+		}
 
 		if !ok {
 			fmt.Println("Invalid command:", command)

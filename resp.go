@@ -35,7 +35,7 @@ func (rd *Resp) read() (Value, error) {
 	typ, err := rd.reader.ReadByte()
 
 	if err != nil {
-		fmt.Println("Error reading type.")
+		// fmt.Println("Error reading type. Error: ", err)
 		return Value{}, err
 	}
 
@@ -165,7 +165,6 @@ func (v Value) marshallArray() []byte {
 
 	for i := 0; i < length; i++ {
 		r = append(r, v.arr[i].marshall()...)
-		r = append(r, '\r', '\n')
 	}
 
 	return r
