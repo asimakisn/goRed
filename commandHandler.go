@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"sync"
 )
 
@@ -20,7 +21,7 @@ var STORAGE = map[string]string{}
 var STORAGE_LOCK = sync.RWMutex{}
 
 var HSTORAGE = map[string]map[string]string{}
-var HSTOREGE_LOCK = sync.RWMutex{}
+var HSTORAGE_LOCK = sync.RWMutex{}
 
 var handlers = map[string]func([]Value) Value{
 	PING:    ping,
@@ -81,9 +82,9 @@ func hGetAll(args []Value) Value {
 
 	key := args[0].bulk
 
-	HSTOREGE_LOCK.RLock()
+	HSTORAGE_LOCK.RLock()
 	value, ok := HSTORAGE[key]
-	HSTOREGE_LOCK.RUnlock()
+	HSTORAGE_LOCK.RUnlock()
 
 	if !ok {
 		fmt.Println("Requested key does not exist.")
@@ -105,18 +106,23 @@ func hSet(args []Value) Value {
 	}
 
 	key := args[0].bulk
-	field := args[1].bulk
-	value := args[2].bulk
+	// field := args[1].bulk
+	// value := args[2].bulk
 
-	HSTOREGE_LOCK.Lock()
 	if _, ok := HSTORAGE[key]; !ok {
 		HSTORAGE[key] = map[string]string{}
 	}
-	HSTORAGE[key][field] = value
-	HSTOREGE_LOCK.Unlock()
+
+	for i := 1; i < len(args)-1; i++ {
+		k := args[i].bulk
+		v := args[i+1].bulk
+
+		HSTORAGE_LOCK.Lock()
+		HSTORAGE[key][k] = v
+		HSTORAGE_LOCK.Unlock()
+	}
 
 	return Value{typ: "string", str: "OK"}
-
 }
 
 func hGet(args []Value) Value {
@@ -127,12 +133,13 @@ func hGet(args []Value) Value {
 	key := args[0].bulk
 	field := args[1].bulk
 
-	HSTOREGE_LOCK.RLock()
+	HSTORAGE_LOCK.RLock()
+	log.Printf("Check for %s key and %s field.", key, field)
 	value, ok := HSTORAGE[key][field]
 	if !ok {
-		return Value{typ: "error", str: "Reqested field does not exist."}
+		return Value{typ: "error", str: "Requested field does not exist."}
 	}
 
-	HSTOREGE_LOCK.RUnlock()
+	HSTORAGE_LOCK.RUnlock()
 	return Value{typ: "bulk", bulk: value}
 }

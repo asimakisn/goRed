@@ -21,7 +21,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	defer aof.file.Close()
+	defer aof.close()
 
 	aof.read(func(val Value) {
 		command := strings.ToUpper(val.arr[0].bulk)

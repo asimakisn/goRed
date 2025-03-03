@@ -16,18 +16,12 @@ type AOF struct {
 }
 
 func (aof *AOF) Write(value Value) error {
-	// file, err := os.OpenFile(aof.file, os.O_APPEND, 0666)
-	// if err != nil {
-	// 	fmt.Println("Error opening file.")
-	// 	return err
-	// }
-
 	aof.mut.Lock()
 	defer aof.mut.Unlock()
 
 	_, err := aof.file.Write(value.marshall())
 	if err != nil {
-		fmt.Println("Error writing to file.")
+		fmt.Printf("Error writing to file. %v", err)
 		return err
 	}
 
@@ -35,7 +29,7 @@ func (aof *AOF) Write(value Value) error {
 }
 
 func newAof(path string) (*AOF, error) {
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDONLY, 0666)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		fmt.Println("Error opening file.")
 		return nil, err
